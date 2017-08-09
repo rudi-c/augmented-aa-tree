@@ -1,0 +1,32 @@
+{
+  "name": "augmented-aa-tree",
+  "version": "1.0.0",
+  "description": "Immutable balanced binary search tree (AA tree) augmented with order statistics",
+  "main": "index.js",
+  "scripts": {
+    "lint": "tslint -c tslint.json '{src,test}/**/*.ts' || true",
+    "test": "tsc && ava --verbose _build/test"
+  },
+  "keywords": [
+    "immutable",
+    "aa",
+    "balanced",
+    "binary",
+    "search",
+    "tree",
+    "order",
+    "augmented",
+    "order",
+    "statistics"
+  ],
+  "author": "Rudi Chen",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/underscore": "^1.8.1",
+    "ava": "^0.21.0",
+    "immutable": "^3.8.1",
+    "tslint": "^5.6.0",
+    "typescript": "^2.4.2",
+    "underscore": "^1.8.3"
+  }
+}
