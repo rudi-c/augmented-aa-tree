@@ -92,7 +92,7 @@ function benchInsertion(numbers: number[]) {
         keepAlive = numbersToCRBTree(numbers);
     });
 
-    profileMeasure("@functional-red-black-tree", () => {
+    profileMeasure("functional-red-black-tree", () => {
         keepAlive = numbersToFRBTree(numbers);
     });
 }
@@ -128,7 +128,7 @@ function benchFind(numbers: number[], repeats: number) {
     }, repeats);
 
     const frbTree = numbersToFRBTree(numbers);
-    profile("@functional-red-black-tree", () => {
+    profile("functional-red-black-tree", () => {
         numbers.forEach(n => frbTree.find(n));
     }, repeats);
 }
@@ -138,3 +138,82 @@ console.log("\nTest searching with 10 000 reverse sorted integers");
 benchFind(_.range(0, 10000).reverse(), 20);
 console.log("\nTest searching with 10 000 shuffled integers");
 benchFind(_.shuffle(_.range(0, 10000)), 20);
+
+/*
+ * Comparing removing 100,000 numbers from tree
+ */
+function benchRemoval(numbers: number[]) {
+    const aaTree = numbersToAATree(numbers);
+    profile("AATree", () => {
+        numbers.reduce((tree, n) => tree.remove(n), aaTree);
+    });
+
+    const imap = numbersToIMap(numbers);
+    profile("Immutable.Map", () => {
+        numbers.reduce((imap, n) => imap.remove(n), imap);
+    });
+
+    const omap = numbersToOMap(numbers);
+    profile("Immutable.OrderedMap", () => {
+        numbers.reduce((omap, n) => omap.remove(n), omap);
+    });
+
+    const crbTree = numbersToCRBTree(numbers);
+    profile("@collectable/red-black-tree", () => {
+        numbers.reduce((crbt, n) => CollectableRBTree.remove(n, crbt), crbTree);
+    });
+
+    const frbTree = numbersToFRBTree(numbers);
+    profile("functional-red-black-tree", () => {
+        numbers.reduce((frbt, n) => frbt.remove(n), frbTree);
+    });
+}
+console.log("\nTest deleting 100 000 sorted integers");
+benchRemoval(_.range(0, 100000));
+console.log("\nTest deleting 100 000 reverse sorted integers");
+benchRemoval(_.range(0, 100000).reverse());
+console.log("\nTest deleting 100 000 shuffled integers");
+benchRemoval(_.shuffle(_.range(0, 100000)));
+
+/*
+ * Comparing adding and removing on a 50,000 sized tree
+ */
+function benchAddRemove(numbers: number[]) {
+    const aaTree = numbersToAATree(numbers.slice(0, numbers.length / 2));
+    const addRemovePairs = _.zip(
+        numbers.slice(0, numbers.length / 2), 
+        numbers.slice(numbers.length / 2, numbers.length)
+    ) as Array<[number, number]>;
+
+    profile("AATree", () => {
+        addRemovePairs.reduce((tree, [add, remove]) => tree.insert(add, add).remove(remove), aaTree);
+    });
+
+    const imap = numbersToIMap(numbers);
+    profile("Immutable.Map", () => {
+        addRemovePairs.reduce((imap, [add, remove]) => imap.set(add, add).remove(remove), imap);
+    });
+
+    const omap = numbersToOMap(numbers);
+    profile("Immutable.OrderedMap", () => {
+        addRemovePairs.reduce((omap, [add, remove]) => omap.set(add, add).remove(remove), omap);
+    });
+
+    const crbTree = numbersToCRBTree(numbers);
+    profile("@collectable/red-black-tree", () => {
+        addRemovePairs.reduce((crbTree, [add, remove]) =>
+            CollectableRBTree.remove(remove, CollectableRBTree.set(add, add, crbTree))
+        , crbTree);
+    });
+
+    const frbTree = numbersToFRBTree(numbers);
+    profile("functional-red-black-tree", () => {
+        addRemovePairs.reduce((frbTree, [add, remove]) => frbTree.insert(add, add).remove(remove), frbTree);
+    });
+}
+console.log("\nTest deleting 100 000 sorted integers");
+benchAddRemove(_.range(0, 100000));
+console.log("\nTest deleting 100 000 reverse sorted integers");
+benchAddRemove(_.range(0, 100000).reverse());
+console.log("\nTest deleting 100 000 shuffled integers");
+benchAddRemove(_.shuffle(_.range(0, 100000)));
