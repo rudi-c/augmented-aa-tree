@@ -4,6 +4,7 @@
   "description": "Immutable balanced binary search tree (AA tree) augmented with order statistics",
   "main": "index.js",
   "scripts": {
+    "bench": "tsc && node --expose-gc _build/test/benchmark.js",
     "lint": "tslint -c tslint.json '{src,test}/**/*.ts' || true",
     "test": "tsc && ava --verbose _build/test"
   },
@@ -22,8 +23,11 @@
   "author": "Rudi Chen",
   "license": "ISC",
   "devDependencies": {
+    "@collectable/red-black-tree": "^4.2.0",
+    "@types/node": "^8.0.20",
     "@types/underscore": "^1.8.1",
     "ava": "^0.21.0",
+    "functional-red-black-tree": "^1.0.1",
     "immutable": "^3.8.1",
     "tslint": "^5.6.0",
     "typescript": "^2.4.2",
