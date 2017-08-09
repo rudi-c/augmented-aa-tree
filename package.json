@@ -4,7 +4,7 @@
   "description": "Immutable balanced binary search tree (AA tree) augmented with order statistics",
   "main": "index.js",
   "scripts": {
-    "bench": "tsc && node --expose-gc _build/test/benchmark.js",
+    "bench": "tsc && node --expose-gc _build/benchmark/benchmark.js",
     "lint": "tslint -c tslint.json '{src,test}/**/*.ts' || true",
     "test": "tsc && ava --verbose _build/test"
   },

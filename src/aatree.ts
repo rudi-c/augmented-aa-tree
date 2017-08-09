@@ -56,6 +56,26 @@ function insert<K, V>(root: AANode<K, V> | null, key: K, value: V, comparator: C
     return _insert(root);
 }
 
+function find<K, V>(root: AANode<K, V> | null, key: K, comparator: Comparator<K>): V | undefined {
+    function _find(node: AANode<K, V> | null): V | undefined {
+        if (node === null) {
+            return undefined;
+        } else {
+            switch (comparator(key, node.key)) {
+                case "eq":
+                    return node.value;
+                case "lt":
+                    return _find(node.left);
+                case "gt":
+                    return _find(node.right);
+                default:
+                    throw new Error("TODO");
+            }
+        }
+    }
+    return _find(root);
+}
+
 function *iter<K, V>(node: AANode<K, V> | null): IterableIterator<[K, V]> {
     if (node === null) {
         return;
@@ -89,6 +109,10 @@ export class AATree<K, V> {
     public insert(key: K, value: V): AATree<K, V> {
         // TODO: remove need for `new`
         return new AATree(this.comparator, insert(this.root, key, value, this.comparator));
+    }
+
+    public find(key: K): V | undefined {
+        return find(this.root, key, this.comparator);
     }
 
     public iter(): IterableIterator<[K, V]> {
