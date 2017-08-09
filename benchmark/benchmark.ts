@@ -11,7 +11,9 @@ import { AATree } from "../src/aatree";
 // Global variable in which to store things to make sure they stay alive
 let keepAlive: any;
 
-console.log("Running tree benchmarks...");
+/*
+ * Benchmarking helpers
+ */
 
 function profile(name: string, fn: () => void, repeats: number = 1) {
     console.time(name);
@@ -40,32 +42,58 @@ function profileMeasure(name: string, fn: () => void) {
 }
 
 /*
- * Comparing inserting 100,000 sorted integers
+ * Tree creation helpers for all the different libraries
+ */
+
+function numbersToAATree(numbers: number[]): AATree<number, number> {
+    return numbers.reduce((tree, n) => tree.insert(n, n), new AATree<number, number>());
+}
+
+function numbersToIMap(numbers: number[]): Immutable.Map<number, number> {
+    return numbers.reduce((imap, n) => imap.set(n, n), Immutable.Map<number, number>());
+}
+
+function numbersToOMap(numbers: number[]): Immutable.OrderedMap<number, number> {
+    return numbers.reduce((omap, n) => omap.set(n, n), Immutable.OrderedMap<number, number>());
+}
+
+function numbersToCRBTree(numbers: number[]) {
+    return numbers.reduce((rbtree, n) => CollectableRBTree.set(n, n, rbtree),
+            CollectableRBTree.emptyWithNumericKeys());
+}
+
+function numbersToFRBTree(numbers: number[]) {
+    return numbers.reduce((rbtree, n) => rbtree.insert(n, n), createTree());
+}
+
+/*
+ * Benchmarking code
+ */
+
+console.log("Running tree benchmarks...");
+
+/*
+ * Comparing inserting 100,000 integers
  */
 function benchInsertion(numbers: number[]) {
     profileMeasure("AATree", () => {
-        keepAlive = numbers.reduce((tree, val) => tree.insert(val, val),
-            new AATree<number, number>());
+        keepAlive = numbersToAATree(numbers);
     });
 
     profileMeasure("Immutable.Map", () => {
-        keepAlive = numbers.reduce((map, val) => map.set(val, val),
-            Immutable.Map<number, number>());
+        keepAlive = numbersToIMap(numbers);
     });
 
     profileMeasure("Immutable.OrderedMap", () => {
-        keepAlive = numbers.reduce((omap, val) => omap.set(val, val),
-            Immutable.OrderedMap<number, number>());
+        keepAlive = numbersToOMap(numbers);
     });
 
     profileMeasure("@collectable/red-black-tree", () => {
-        keepAlive = numbers.reduce((rbtree, val) => CollectableRBTree.set(val, val, rbtree),
-            CollectableRBTree.emptyWithNumericKeys());
+        keepAlive = numbersToCRBTree(numbers);
     });
 
     profileMeasure("@functional-red-black-tree", () => {
-        keepAlive = numbers.reduce((rbtree, val) => rbtree.insert(val, val),
-            createTree());
+        keepAlive = numbersToFRBTree(numbers);
     });
 }
 console.log("\nTest inserting 100 000 sorted integers");
@@ -76,47 +104,32 @@ console.log("\nTest inserting 100 000 shuffled integers");
 benchInsertion(_.shuffle(_.range(0, 100000)));
 
 /*
- * Comparing finding within 10,000 sorted integers
+ * Comparing finding within 10,000 integers
  */
 function benchFind(numbers: number[], repeats: number) {
-    const aaTree = numbers.reduce((tree, val) => tree.insert(val, val),
-        new AATree<number, number>());
+    const aaTree = numbersToAATree(numbers);
     profile("AATree", () => {
-        numbers.forEach(n => {
-            aaTree.find(n);
-        });
+        numbers.forEach(n => aaTree.find(n));
     }, repeats);
 
-    const imap = numbers.reduce((map, val) => map.set(val, val),
-        Immutable.Map<number, number>());
+    const imap = numbersToIMap(numbers);
     profile("Immutable.Map", () => {
-        numbers.forEach(n => {
-            imap.get(n);
-        });
+        numbers.forEach(n => imap.get(n));
     }, repeats);
 
-    const omap = numbers.reduce((omap, val) => omap.set(val, val),
-        Immutable.OrderedMap<number, number>());
+    const omap = numbersToOMap(numbers);
     profile("Immutable.OrderedMap", () => {
-        numbers.forEach(n => {
-            imap.get(n);
-        });
+        numbers.forEach(n => imap.get(n));
     }, repeats);
 
-    const crbTree = numbers.reduce((rbtree, val) => CollectableRBTree.set(val, val, rbtree),
-        CollectableRBTree.emptyWithNumericKeys());
+    const crbTree = numbersToCRBTree(numbers);
     profile("@collectable/red-black-tree", () => {
-        numbers.forEach(n => {
-            CollectableRBTree.get(n, crbTree);
-        });
+        numbers.forEach(n => CollectableRBTree.get(n, crbTree));
     }, repeats);
 
-    const frbTree = numbers.reduce((rbtree, val) => rbtree.insert(val, val),
-        createTree());
+    const frbTree = numbersToFRBTree(numbers);
     profile("@functional-red-black-tree", () => {
-        numbers.forEach(n => {
-            frbTree.find(n);
-        });
+        numbers.forEach(n => frbTree.find(n));
     }, repeats);
 }
 console.log("\nTest searching with 10 000 sorted integers");
