@@ -6,6 +6,10 @@ interface AANode<K, V> {
     level: number;
 }
 
+function AANode<K, V>(key: K, value: V, left: AANode<K, V> | null, right: AANode<K, V> | null, level: number): AANode<K, V> {
+    return { key, value, left, right, level };
+}
+
 type Comparator<K> = (a: K, b: K) => "lt" | "eq" | "gt";
 
 function level<K, V>(node: AANode<K, V> | null): number {
@@ -34,6 +38,7 @@ function maintainsInvariant<K, V>(node: AANode<K, V> | null): boolean {
     }
 }
 
+/*
 function split<K, V>(node: AANode<K, V>): AANode<K, V> {
     if (node.right && node.right.right &&
         node.right.level === node.level &&
@@ -50,6 +55,37 @@ function split<K, V>(node: AANode<K, V>): AANode<K, V> {
 function skew<K, V>(node: AANode<K, V>): AANode<K, V> {
     if (node.left && node.left.level === node.level) {
         return { ...node.left, right: { ...node, left: node.left.right } };
+    } else {
+        return node;
+    }
+}
+*/
+
+function split<K, V>(node: AANode<K, V>): AANode<K, V> {
+    if (node.right && node.right.right &&
+        node.right.level === node.level &&
+        node.right.right.level === node.level) {
+        return AANode(
+            node.right.key, 
+            node.right.value,
+            AANode(node.key, node.value, node.left, node.right.left, node.level),
+            node.right.right,
+            node.level + 1
+        );
+    } else {
+        return node;
+    }
+}
+
+function skew<K, V>(node: AANode<K, V>): AANode<K, V> {
+    if (node.left && node.left.level === node.level) {
+        return AANode(
+            node.left.key,
+            node.left.value,
+            node.left.left,
+            AANode(node.key, node.value, node.left.right, node.right, node.level),
+            node.left.level
+        )
     } else {
         return node;
     }
