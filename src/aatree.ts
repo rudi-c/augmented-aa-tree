@@ -11,6 +11,7 @@ function AANode<K, V>(key: K, value: V, left: AANode<K, V> | null, right: AANode
 }
 
 type Comparator<K> = (a: K, b: K) => "lt" | "eq" | "gt";
+type OrderStatsMap<K, V> = (k: K, v: V) => any;
 
 function level<K, V>(node: AANode<K, V> | null): number {
     return node ? node.level : 0;
@@ -38,7 +39,6 @@ function maintainsInvariant<K, V>(node: AANode<K, V> | null): boolean {
     }
 }
 
-/*
 function split<K, V>(node: AANode<K, V>): AANode<K, V> {
     if (node.right && node.right.right &&
         node.right.level === node.level &&
@@ -55,37 +55,6 @@ function split<K, V>(node: AANode<K, V>): AANode<K, V> {
 function skew<K, V>(node: AANode<K, V>): AANode<K, V> {
     if (node.left && node.left.level === node.level) {
         return { ...node.left, right: { ...node, left: node.left.right } };
-    } else {
-        return node;
-    }
-}
-*/
-
-function split<K, V>(node: AANode<K, V>): AANode<K, V> {
-    if (node.right && node.right.right &&
-        node.right.level === node.level &&
-        node.right.right.level === node.level) {
-        return AANode(
-            node.right.key, 
-            node.right.value,
-            AANode(node.key, node.value, node.left, node.right.left, node.level),
-            node.right.right,
-            node.level + 1
-        );
-    } else {
-        return node;
-    }
-}
-
-function skew<K, V>(node: AANode<K, V>): AANode<K, V> {
-    if (node.left && node.left.level === node.level) {
-        return AANode(
-            node.left.key,
-            node.left.value,
-            node.left.left,
-            AANode(node.key, node.value, node.left.right, node.right, node.level),
-            node.left.level
-        )
     } else {
         return node;
     }
@@ -125,16 +94,18 @@ function adjust<K, V>(node: AANode<K, V>): AANode<K, V> {
     }
 }
 
-function insert<K, V>(root: AANode<K, V> | null, key: K, value: V, comparator: Comparator<K>): AANode<K, V> {
+function insert<K, V>(root: AANode<K, V> | null, key: K, value: V,
+                      comparator: Comparator<K>, orderStatsMap: OrderStatsMap<K, V>): AANode<K, V> {
     function _insert(node: AANode<K, V> | null): AANode<K, V> {
         if (node == null) {
-            return {
+            return { ...{}, ...{
                 key,
                 value,
                 left: null,
                 right: null,
                 level: 1,
-            };
+                ...orderStatsMap(key, value),
+            }};
         } else {
             switch (comparator(key, node.key)) {
                 case "eq":
@@ -188,7 +159,8 @@ function deleteLast<K, V>(node: AANode<K, V>): AANode<K, V> | null {
     }
 }
 
-function remove<K, V>(root: AANode<K, V> | null, key: K, comparator: Comparator<K>): AANode<K, V> | null {
+function remove<K, V>(root: AANode<K, V> | null, key: K, comparator: Comparator<K>,
+                      orderStats: OrderStatsMap<K, V>): AANode<K, V> | null {
     function _remove(node: AANode<K, V> | null): AANode<K, V> | null {
         if (node === null) {
             return null;
@@ -240,22 +212,27 @@ function defaultComparator<K>(a: K, b: K) {
 }
 
 export class AATree<K, V> {
-    private root: AANode<K, V> | null;
-    private comparator: Comparator<K>;
+    protected root: AANode<K, V> | null;
+    protected comparator: Comparator<K>;
+    protected orderStatsMap: OrderStatsMap<K, V>;
 
     constructor(comparator: Comparator<K> = defaultComparator,
+                orderStatsMap: OrderStatsMap<K, V> = () => ({}),
                 root: AANode<K, V> | null = null) {
         this.root = root;
+        this.orderStatsMap = orderStatsMap;
         this.comparator = comparator;
     }
 
     public insert(key: K, value: V): AATree<K, V> {
         // TODO: remove need for `new`
-        return new AATree(this.comparator, insert(this.root, key, value, this.comparator));
+        return new AATree(this.comparator, this.orderStatsMap,
+            insert(this.root, key, value, this.comparator, this.orderStatsMap));
     }
 
     public remove(key: K): AATree<K, V> {
-        return new AATree(this.comparator, remove(this.root, key, this.comparator));
+        return new AATree(this.comparator, this.orderStatsMap,
+            remove(this.root, key, this.comparator, this.orderStatsMap));
     }
 
     public find(key: K): V | undefined {
@@ -273,11 +250,21 @@ export class AATree<K, V> {
         }
     }
 
+    public orderStats() {
+        if (this.root) {
+            const orderStats: any = {};
+            for (const stat in this.orderStatsMap) {
+                if (this.orderStatsMap.hasOwnProperty(stat)) {
+                    orderStats[stat] = (this.root as any)[stat];
+                }
+            }
+            return orderStats;
+        } else {
+            return null;
+        }
+    }
+
     public _maintainsInvariant(): boolean {
         return maintainsInvariant(this.root);
     }
-}
-
-class AugmentedAATree<K, V> extends AATree<K, V> {
-    private size: number;
 }
