@@ -8,6 +8,9 @@ interface AANode<K, V> {
     orderStats: any;
 }
 
+type Comparator<K> = (a: K, b: K) => "lt" | "eq" | "gt";
+type OrderStatsMap<K, V> = (k: K, v: V) => any;
+
 function level<K, V>(node: AANode<K, V> | null): number {
     return node ? node.level : 0;
 }
@@ -15,14 +18,6 @@ function level<K, V>(node: AANode<K, V> | null): number {
 function size<K, V>(node: AANode<K, V> | null): number {
     return node ? node.size : 0;
 }
-
-function AANode<K, V>(key: K, value: V,
-                      left: AANode<K, V> | null, right: AANode<K, V> | null, level: number): AANode<K, V> {
-    return { key, value, left, right, level, size: 1 + size(left) + size(right), orderStats: null };
-}
-
-type Comparator<K> = (a: K, b: K) => "lt" | "eq" | "gt";
-type OrderStatsMap<K, V> = (k: K, v: V) => any;
 
 function isSingle<K, V>(node: AANode<K, V> | null): boolean {
     if (node === null) {
@@ -46,146 +41,12 @@ function maintainsInvariant<K, V>(node: AANode<K, V> | null): boolean {
     }
 }
 
-function split<K, V>(node: AANode<K, V>): AANode<K, V> {
-    if (node.right && node.right.right &&
-        node.right.level === node.level &&
-        node.right.right.level === node.level) {
-        return AANode(node.right.key, node.right.value,
-            AANode(node.key, node.value, node.left, node.right.left, node.level),
-            node.right.right,
-            node.level + 1);
-    } else {
-        return node;
-    }
-}
-
-function skew<K, V>(node: AANode<K, V>): AANode<K, V> {
-    if (node.left && node.left.level === node.level) {
-        return AANode(node.left.key, node.left.value,
-            node.left.left,
-            AANode(node.key, node.value, node.left.right, node.right, node.level),
-            node.left.level);
-    } else {
-        return node;
-    }
-}
-
-function adjust<K, V>(node: AANode<K, V>): AANode<K, V> {
-    if (level(node.right) >= level(node) - 1 &&
-        level(node.left) >= level(node) - 1) {
-        return node;
-    } else if (level(node) > level(node.right) + 1) {
-        // Right child is two levels below the node
-        if (isSingle(node.left)) {
-            return skew(AANode(node.key, node.value, node.left, node.right, node.level - 1));
-        } else {
-            const nleft = node.left!;
-            return AANode(nleft.right!.key, nleft.right!.value,
-                AANode(nleft.key, nleft.value, nleft.left, nleft.right!.left, nleft.level),
-                AANode(node.key, node.value, nleft.right!.right, node.right, node.level - 1),
-                node.level);
-        }
-    } else {
-        // Left child is two levels below the node
-        if (isSingle(node)) {
-            return split(AANode(node.key, node.value, node.left, node.right, node.level - 1));
-        } else {
-            const nleft = node.left!;
-            const nright = node.right!;
-            const a = nright.left!;
-            const nrightLevel = isSingle(a) ? nright.level - 1 : nright.level;
-            return AANode(a.key, a.value,
-                AANode(node.key, node.value, node.left, a.left, node.level - 1),
-                split(AANode(nright.key, nright.value, a.right, nright.right, nrightLevel)),
-                a.level + 1);
-        }
-    }
-}
-
-function insert<K, V>(root: AANode<K, V> | null, key: K, value: V,
-                      comparator: Comparator<K>, orderStatsMap: OrderStatsMap<K, V>): AANode<K, V> {
-    function _insert(node: AANode<K, V> | null): AANode<K, V> {
-        if (node == null) {
-            return AANode(key, value, null, null, 1);
-        } else {
-            switch (comparator(key, node.key)) {
-                case "eq":
-                    return AANode(node.key, value, node.left, node.right, node.level);
-                case "lt":
-                    return split(skew(AANode(node.key, node.value, _insert(node.left), node.right, node.level)));
-                case "gt":
-                    return split(skew(AANode(node.key, node.value, node.left, _insert(node.right), node.level)));
-                default:
-                    throw new Error("TODO");
-            }
-        }
-    }
-
-    return _insert(root);
-}
-
-function find<K, V>(root: AANode<K, V> | null, key: K, comparator: Comparator<K>): V | undefined {
-    function _find(node: AANode<K, V> | null): V | undefined {
-        if (node === null) {
-            return undefined;
-        } else {
-            switch (comparator(key, node.key)) {
-                case "eq":
-                    return node.value;
-                case "lt":
-                    return _find(node.left);
-                case "gt":
-                    return _find(node.right);
-                default:
-                    throw new Error("TODO");
-            }
-        }
-    }
-    return _find(root);
-}
-
 function last<K, V>(node: AANode<K, V>): [K, V] {
     if (node.right === null) {
         return [node.key, node.value];
     } else {
         return last(node.right);
     }
-}
-
-function deleteLast<K, V>(node: AANode<K, V>): AANode<K, V> | null {
-    if (node.right === null) {
-        return node.left;
-    } else {
-        return adjust(AANode(node.key, node.value, node.left, deleteLast(node.right), node.level));
-    }
-}
-
-function remove<K, V>(root: AANode<K, V> | null, key: K, comparator: Comparator<K>,
-                      orderStats: OrderStatsMap<K, V>): AANode<K, V> | null {
-    function _remove(node: AANode<K, V> | null): AANode<K, V> | null {
-        if (node === null) {
-            return null;
-        } else {
-            switch (comparator(key, node.key)) {
-                case "eq":
-                    if (node.left === null) {
-                        return node.right;
-                    } else if (node.right === null) {
-                        return node.left;
-                    } else {
-                        const [lastKey, lastValue] = last(node.left);
-                        return adjust(AANode(lastKey, lastValue, deleteLast(node.left), node.right, node.level));
-                    }
-                case "lt":
-                    return adjust(AANode(node.key, node.value, _remove(node.left), node.right, node.level));
-                case "gt":
-                    return adjust(AANode(node.key, node.value, node.left, _remove(node.right), node.level));
-                default:
-                    throw new Error("TODO");
-            }
-        }
-    }
-    return _remove(root);
 }
 
 function *iter<K, V>(node: AANode<K, V> | null): IterableIterator<[K, V]> {
@@ -222,18 +83,78 @@ export class AATree<K, V> {
     }
 
     public insert(key: K, value: V): AATree<K, V> {
-        // TODO: remove need for `new`
-        return new AATree(this.comparator, this.orderStatsMap,
-            insert(this.root, key, value, this.comparator, this.orderStatsMap));
+        const self = this;
+        function _insert(node: AANode<K, V> | null): AANode<K, V> {
+            if (node == null) {
+                return self.node(key, value, null, null, 1);
+            } else {
+                switch (self.comparator(key, node.key)) {
+                    case "eq":
+                        return self.node(node.key, value, node.left, node.right, node.level);
+                    case "lt":
+                        return self.split(self.skew(self.node(
+                            node.key, node.value, _insert(node.left), node.right, node.level)));
+                    case "gt":
+                        return self.split(self.skew(self.node(
+                            node.key, node.value, node.left, _insert(node.right), node.level)));
+                    default:
+                        throw new Error("TODO");
+                }
+            }
+        }
+
+        return new AATree(this.comparator, this.orderStatsMap, _insert(this.root));
     }
 
     public remove(key: K): AATree<K, V> {
-        return new AATree(this.comparator, this.orderStatsMap,
-            remove(this.root, key, this.comparator, this.orderStatsMap));
+        const self = this;
+        function _remove(node: AANode<K, V> | null): AANode<K, V> | null {
+            if (node === null) {
+                return null;
+            } else {
+                switch (self.comparator(key, node.key)) {
+                    case "eq":
+                        if (node.left === null) {
+                            return node.right;
+                        } else if (node.right === null) {
+                            return node.left;
+                        } else {
+                            const [lastKey, lastValue] = last(node.left);
+                            return self.adjust(self.node(lastKey, lastValue, self.deleteLast(node.left),
+                                                         node.right, node.level));
+                        }
+                    case "lt":
+                        return self.adjust(self.node(node.key, node.value, _remove(node.left), node.right, node.level));
+                    case "gt":
+                        return self.adjust(self.node(node.key, node.value, node.left, _remove(node.right), node.level));
+                    default:
+                        throw new Error("TODO");
+                }
+            }
+        }
+
+        return new AATree(this.comparator, this.orderStatsMap, _remove(this.root));
     }
 
     public find(key: K): V | undefined {
-        return find(this.root, key, this.comparator);
+        const self = this;
+        function _find(node: AANode<K, V> | null): V | undefined {
+            if (node === null) {
+                return undefined;
+            } else {
+                switch (self.comparator(key, node.key)) {
+                    case "eq":
+                        return node.value;
+                    case "lt":
+                        return _find(node.left);
+                    case "gt":
+                        return _find(node.right);
+                    default:
+                        throw new Error("TODO");
+                }
+            }
+        }
+        return _find(this.root);
     }
 
     public iter(): IterableIterator<[K, V]> {
@@ -263,5 +184,75 @@ export class AATree<K, V> {
 
     public _maintainsInvariant(): boolean {
         return maintainsInvariant(this.root);
+    }
+
+    private node<K, V>(key: K, value: V,
+                       left: AANode<K, V> | null, right: AANode<K, V> | null,
+                       level: number): AANode<K, V> {
+        return { key, value, left, right, level, size: 1 + size(left) + size(right), orderStats: null };
+    }
+
+    private deleteLast<K, V>(node: AANode<K, V>): AANode<K, V> | null {
+        if (node.right === null) {
+            return node.left;
+        } else {
+            return this.adjust(this.node(node.key, node.value, node.left, this.deleteLast(node.right), node.level));
+        }
+    }
+
+    private split<K, V>(node: AANode<K, V>): AANode<K, V> {
+        if (node.right && node.right.right &&
+            node.right.level === node.level &&
+            node.right.right.level === node.level) {
+            return this.node(node.right.key, node.right.value,
+                this.node(node.key, node.value, node.left, node.right.left, node.level),
+                node.right.right,
+                node.level + 1);
+        } else {
+            return node;
+        }
+    }
+
+    private skew<K, V>(node: AANode<K, V>): AANode<K, V> {
+        if (node.left && node.left.level === node.level) {
+            return this.node(node.left.key, node.left.value,
+                node.left.left,
+                this.node(node.key, node.value, node.left.right, node.right, node.level),
+                node.left.level);
+        } else {
+            return node;
+        }
+    }
+
+    private adjust<K, V>(node: AANode<K, V>): AANode<K, V> {
+        if (level(node.right) >= level(node) - 1 &&
+            level(node.left) >= level(node) - 1) {
+            return node;
+        } else if (level(node) > level(node.right) + 1) {
+            // Right child is two levels below the node
+            if (isSingle(node.left)) {
+                return this.skew(this.node(node.key, node.value, node.left, node.right, node.level - 1));
+            } else {
+                const nleft = node.left!;
+                return this.node(nleft.right!.key, nleft.right!.value,
+                    this.node(nleft.key, nleft.value, nleft.left, nleft.right!.left, nleft.level),
+                    this.node(node.key, node.value, nleft.right!.right, node.right, node.level - 1),
+                    node.level);
+            }
+        } else {
+            // Left child is two levels below the node
+            if (isSingle(node)) {
+                return this.split(this.node(node.key, node.value, node.left, node.right, node.level - 1));
+            } else {
+                const nleft = node.left!;
+                const nright = node.right!;
+                const a = nright.left!;
+                const nrightLevel = isSingle(a) ? nright.level - 1 : nright.level;
+                return this.node(a.key, a.value,
+                    this.node(node.key, node.value, node.left, a.left, node.level - 1),
+                    this.split(this.node(nright.key, nright.value, a.right, nright.right, nrightLevel)),
+                    a.level + 1);
+            }
+        }
     }
 }
