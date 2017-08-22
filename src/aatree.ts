@@ -4,19 +4,25 @@ interface AANode<K, V> {
     left: AANode<K, V> | null;
     right: AANode<K, V> | null;
     level: number;
+    size: number;
+    orderStats: any;
 }
-
-function AANode<K, V>(key: K, value: V,
-                      left: AANode<K, V> | null, right: AANode<K, V> | null, level: number): AANode<K, V> {
-    return { key, value, left, right, level };
-}
-
-type Comparator<K> = (a: K, b: K) => "lt" | "eq" | "gt";
-type OrderStatsMap<K, V> = (k: K, v: V) => any;
 
 function level<K, V>(node: AANode<K, V> | null): number {
     return node ? node.level : 0;
 }
+
+function size<K, V>(node: AANode<K, V> | null): number {
+    return node ? node.size : 0;
+}
+
+function AANode<K, V>(key: K, value: V,
+                      left: AANode<K, V> | null, right: AANode<K, V> | null, level: number): AANode<K, V> {
+    return { key, value, left, right, level, size: 1 + size(left) + size(right), orderStats: null };
+}
+
+type Comparator<K> = (a: K, b: K) => "lt" | "eq" | "gt";
+type OrderStatsMap<K, V> = (k: K, v: V) => any;
 
 function isSingle<K, V>(node: AANode<K, V> | null): boolean {
     if (node === null) {
