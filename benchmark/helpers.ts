@@ -13,12 +13,18 @@ import { AATree } from "../src/aatree";
  * Benchmarking helpers
  */
 
-export function profile(name: string, fn: () => void, repeats: number = 1) {
+function _profile(name: string, fn: () => void, repeats: number = 1) {
     console.time(name);
     for (let i = 0; i < repeats; i++) {
         fn();
     }
     console.timeEnd(name);
+}
+
+export function profile(name: string, fn: () => void, repeats: number = 1) {
+    // Do a GC before to avoid cleaning up previous tests during profiling.
+    global.gc();
+    _profile(name, fn, repeats);
 }
 
 export function measure(fn: () => void) {
@@ -36,7 +42,7 @@ export function measure(fn: () => void) {
 }
 
 export function profileMeasure(name: string, fn: () => void) {
-    measure(() => profile(name, fn));
+    measure(() => _profile(name, fn));
 }
 
 export namespace measure {
