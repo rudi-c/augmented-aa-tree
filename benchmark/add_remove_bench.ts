@@ -7,6 +7,8 @@ import {
     numbersToOMap, 
     numbersToCRBTree, 
     numbersToFRBTree, 
+    numbersToMap,
+    numbersToSMap,
     profileMeasure,
 } from "./helpers"
 
@@ -18,8 +20,8 @@ const CollectableRBTree = require("@collectable/red-black-tree");
 function benchAddRemove(numbers: number[]) {
     const aaTree = numbersToAATree(numbers.slice(0, numbers.length / 2));
     const addRemovePairs = _.zip(
-        numbers.slice(0, numbers.length / 2), 
-        numbers.slice(numbers.length / 2, numbers.length)
+        numbers.slice(0, numbers.length / 2),
+        numbers.slice(numbers.length / 2, numbers.length),
     ) as Array<[number, number]>;
 
     profile("AATree", () => {
@@ -47,10 +49,26 @@ function benchAddRemove(numbers: number[]) {
     profile("functional-red-black-tree", () => {
         addRemovePairs.reduce((frbTree, [add, remove]) => frbTree.insert(add, add).remove(remove), frbTree);
     });
+
+    const map = numbersToMap(numbers);
+    profile("Map", () => {
+        addRemovePairs.forEach(([add, remove]) => {
+            map.set(add, add);
+            map.delete(remove);
+        });
+    });
+
+    const smap = numbersToMap(numbers);
+    profile("SortedMap", () => {
+        addRemovePairs.forEach(([add, remove]) => {
+            smap.set(add, add);
+            smap.delete(remove);
+        });
+    });
 }
-console.log("\nTest deleting 100 000 sorted integers");
+console.log("\nTest inserting and deleting on 50,000 size tree from sorted integers");
 benchAddRemove(_.range(0, 100000));
-console.log("\nTest deleting 100 000 reverse sorted integers");
+console.log("\nTest inserting and deleting on 50,000 size tree from reverse sorted integers");
 benchAddRemove(_.range(0, 100000).reverse());
-console.log("\nTest deleting 100 000 shuffled integers");
+console.log("\nTest inserting and deleting on 50,000 size tree from shuffled integers");
 benchAddRemove(_.shuffle(_.range(0, 100000)));

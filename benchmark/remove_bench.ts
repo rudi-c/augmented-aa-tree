@@ -7,6 +7,8 @@ import {
     numbersToOMap, 
     numbersToCRBTree, 
     numbersToFRBTree, 
+    numbersToMap,
+    numbersToSMap,
     profileMeasure,
 } from "./helpers"
 
@@ -39,6 +41,16 @@ function benchRemoval(numbers: number[]) {
     const frbTree = numbersToFRBTree(numbers);
     profile("functional-red-black-tree", () => {
         numbers.reduce((frbt, n) => frbt.remove(n), frbTree);
+    });
+
+    const map = numbersToMap(numbers);
+    profile("Map", () => {
+        numbers.forEach(n => map.delete(n));
+    });
+
+    const smap = numbersToSMap(numbers);
+    profile("SortedMap", () => {
+        numbers.forEach(n => smap.delete(n));
     });
 }
 console.log("\nTest deleting 100 000 sorted integers");

@@ -7,6 +7,8 @@ import {
     numbersToOMap, 
     numbersToCRBTree, 
     numbersToFRBTree, 
+    numbersToMap,
+    numbersToSMap,
     profileMeasure,
 } from "./helpers"
 
@@ -32,6 +34,14 @@ function benchInsertion(numbers: number[]) {
 
     profileMeasure("functional-red-black-tree", () => {
         measure.keepAlive = numbersToFRBTree(numbers);
+    });
+
+    profileMeasure("Map", () => {
+        measure.keepAlive = numbersToMap(numbers);
+    });
+
+    profileMeasure("SortedMap", () => {
+        measure.keepAlive = numbersToSMap(numbers);
     });
 }
 console.log("\nTest inserting 100 000 sorted integers");

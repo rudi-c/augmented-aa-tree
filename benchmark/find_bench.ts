@@ -7,6 +7,8 @@ import {
     numbersToOMap, 
     numbersToCRBTree, 
     numbersToFRBTree, 
+    numbersToMap,
+    numbersToSMap,
     profileMeasure,
 } from "./helpers"
 
@@ -39,6 +41,16 @@ function benchFind(numbers: number[], repeats: number) {
     const frbTree = numbersToFRBTree(numbers);
     profile("functional-red-black-tree", () => {
         numbers.forEach(n => frbTree.find(n));
+    }, repeats);
+
+    const map = numbersToMap(numbers);
+    profile("Map", () => {
+        numbers.forEach(n => map.get(n));
+    }, repeats);
+
+    const smap = numbersToSMap(numbers);
+    profile("SortedMap", () => {
+        numbers.forEach(n => smap.get(n));
     }, repeats);
 }
 console.log("\nTest searching with 10 000 sorted integers");

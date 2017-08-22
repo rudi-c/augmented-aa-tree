@@ -5,6 +5,8 @@ const createTree = require("functional-red-black-tree");
 // import * as CollectableRBTree from "@collectable/red-black-tree"
 const CollectableRBTree = require("@collectable/red-black-tree");
 
+const SortedMap = require("collections/sorted-map");
+
 import { AATree } from "../src/aatree";
 
 /*
@@ -30,7 +32,7 @@ export function measure(fn: () => void) {
 
     global.gc();
     const mbs = (process.memoryUsage().heapUsed - heapUsed) / 1024 / 1024;
-    console.log(`Memory usage: ${mbs.toFixed(3)} MB`);
+    console.log(`    Memory usage: ${mbs.toFixed(3)} MB`);
 }
 
 export function profileMeasure(name: string, fn: () => void) {
@@ -67,4 +69,16 @@ export function numbersToCRBTree(numbers: number[]) {
 
 export function numbersToFRBTree(numbers: number[]) {
     return numbers.reduce((rbtree, n) => rbtree.insert(n, n), createTree());
+}
+
+export function numbersToMap(numbers: number[]) {
+    const map = new Map<number, number>();
+    numbers.forEach(n => map.set(n, n));
+    return map;
+}
+
+export function numbersToSMap(numbers: number[]) {
+    const map = SortedMap();
+    numbers.forEach(n => map.set(n, n));
+    return map;
 }
