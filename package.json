@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "bench": "tsc && node --expose-gc _build/benchmark/benchmark.js",
+    "profile": "tsc && node --prof _build/benchmark/profile.js",
     "lint": "tslint -c tslint.json '{src,test}/**/*.ts' || true",
     "test": "tsc && ava --verbose _build/test"
   },
