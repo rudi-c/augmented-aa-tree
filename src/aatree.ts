@@ -6,7 +6,8 @@ interface AANode<K, V> {
     level: number;
 }
 
-function AANode<K, V>(key: K, value: V, left: AANode<K, V> | null, right: AANode<K, V> | null, level: number): AANode<K, V> {
+function AANode<K, V>(key: K, value: V,
+                      left: AANode<K, V> | null, right: AANode<K, V> | null, level: number): AANode<K, V> {
     return { key, value, left, right, level };
 }
 
@@ -43,10 +44,10 @@ function split<K, V>(node: AANode<K, V>): AANode<K, V> {
     if (node.right && node.right.right &&
         node.right.level === node.level &&
         node.right.right.level === node.level) {
-        return { ...node.right,
-            left: { ...node, right: node.right.left },
-            level: node.level + 1,
-        };
+        return AANode(node.right.key, node.right.value,
+            AANode(node.key, node.value, node.left, node.right.left, node.level),
+            node.right.right,
+            node.level + 1);
     } else {
         return node;
     }
@@ -54,7 +55,10 @@ function split<K, V>(node: AANode<K, V>): AANode<K, V> {
 
 function skew<K, V>(node: AANode<K, V>): AANode<K, V> {
     if (node.left && node.left.level === node.level) {
-        return { ...node.left, right: { ...node, left: node.left.right } };
+        return AANode(node.left.key, node.left.value,
+            node.left.left,
+            AANode(node.key, node.value, node.left.right, node.right, node.level),
+            node.left.level);
     } else {
         return node;
     }
@@ -67,29 +71,27 @@ function adjust<K, V>(node: AANode<K, V>): AANode<K, V> {
     } else if (level(node) > level(node.right) + 1) {
         // Right child is two levels below the node
         if (isSingle(node.left)) {
-            return skew({ ...node, level: node.level - 1 });
+            return skew(AANode(node.key, node.value, node.left, node.right, node.level - 1));
         } else {
             const nleft = node.left!;
-            return { ...nleft.right!,
-                left: { ...nleft, right: nleft.right!.left },
-                right: { ...node, left: nleft.right!.right, level: node.level - 1 },
-                level: node.level,
-            };
+            return AANode(nleft.right!.key, nleft.right!.value,
+                AANode(nleft.key, nleft.value, nleft.left, nleft.right!.left, nleft.level),
+                AANode(node.key, node.value, nleft.right!.right, node.right, node.level - 1),
+                node.level);
         }
     } else {
         // Left child is two levels below the node
         if (isSingle(node)) {
-           return split({ ...node, level: node.level - 1 }) ;
+            return split(AANode(node.key, node.value, node.left, node.right, node.level - 1));
         } else {
             const nleft = node.left!;
             const nright = node.right!;
             const a = nright.left!;
             const nrightLevel = isSingle(a) ? nright.level - 1 : nright.level;
-            return { ...a,
-                left: { ...node, right: a.left, level: node.level - 1 },
-                right: split({ ...nright, left: a.right, level: nrightLevel }),
-                level: a.level + 1,
-            };
+            return AANode(a.key, a.value,
+                AANode(node.key, node.value, node.left, a.left, node.level - 1),
+                split(AANode(nright.key, nright.value, a.right, nright.right, nrightLevel)),
+                a.level + 1);
         }
     }
 }
@@ -98,22 +100,15 @@ function insert<K, V>(root: AANode<K, V> | null, key: K, value: V,
                       comparator: Comparator<K>, orderStatsMap: OrderStatsMap<K, V>): AANode<K, V> {
     function _insert(node: AANode<K, V> | null): AANode<K, V> {
         if (node == null) {
-            return { ...{}, ...{
-                key,
-                value,
-                left: null,
-                right: null,
-                level: 1,
-                ...orderStatsMap(key, value),
-            }};
+            return AANode(key, value, null, null, 1);
         } else {
             switch (comparator(key, node.key)) {
                 case "eq":
-                    return { ...node, value };
+                    return AANode(node.key, value, node.left, node.right, node.level);
                 case "lt":
-                    return split(skew({ ...node, left: _insert(node.left) }));
+                    return split(skew(AANode(node.key, node.value, _insert(node.left), node.right, node.level)));
                 case "gt":
-                    return split(skew({ ...node, right: _insert(node.right) }));
+                    return split(skew(AANode(node.key, node.value, node.left, _insert(node.right), node.level)));
                 default:
                     throw new Error("TODO");
             }
@@ -155,7 +150,7 @@ function deleteLast<K, V>(node: AANode<K, V>): AANode<K, V> | null {
     if (node.right === null) {
         return node.left;
     } else {
-        return adjust({ ...node, right: deleteLast(node.right) });
+        return adjust(AANode(node.key, node.value, node.left, deleteLast(node.right), node.level));
     }
 }
 
@@ -173,16 +168,12 @@ function remove<K, V>(root: AANode<K, V> | null, key: K, comparator: Comparator<
                         return node.left;
                     } else {
                         const [lastKey, lastValue] = last(node.left);
-                        return adjust({ ...node,
-                            key: lastKey,
-                            value: lastValue,
-                            left: deleteLast(node.left),
-                        });
+                        return adjust(AANode(lastKey, lastValue, deleteLast(node.left), node.right, node.level));
                     }
                 case "lt":
-                    return adjust({ ...node, left: _remove(node.left) });
+                    return adjust(AANode(node.key, node.value, _remove(node.left), node.right, node.level));
                 case "gt":
-                    return adjust({ ...node, right: _remove(node.right) });
+                    return adjust(AANode(node.key, node.value, node.left, _remove(node.right), node.level));
                 default:
                     throw new Error("TODO");
             }
