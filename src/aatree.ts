@@ -5,11 +5,10 @@ interface AANode<K, V> {
     right: AANode<K, V> | null;
     level: number;
     size: number;
-    orderStats: any;
+    orderStats: OrderStats<K, V> | null;
 }
 
 type Comparator<K> = (a: K, b: K) => "lt" | "eq" | "gt";
-type OrderStatsMap<K, V> = (k: K, v: V) => any;
 
 function level<K, V>(node: AANode<K, V> | null): number {
     return node ? node.level : 0;
@@ -59,27 +58,64 @@ function *iter<K, V>(node: AANode<K, V> | null): IterableIterator<[K, V]> {
     }
 }
 
-function defaultComparator<K>(a: K, b: K) {
-    if (a < b) {
-        return "lt";
-    } else if (a > b) {
-        return "gt";
+function nth<K, V>(node: AANode<K, V> | null, n: number): [K, V] | undefined {
+    if (node === null) {
+        return undefined;
     } else {
-        return "eq";
+        const leftSize = size(node.left);
+        if (n === leftSize) {
+            return [node.key, node.value];
+        } else if (n < leftSize) {
+            return nth(node.left, n);
+        } else {
+            return nth(node.right, n - leftSize - 1);
+        }
+    }
+}
+
+function nthStat<K, V>(node: AANode<K, V> | null, stat: string, x: number): [K, V] | undefined {
+    if (node === null) {
+        return undefined;
+    } else {
+        const weight = node ? (node.orderStats! as any)[stat] : 0;
+        const leftWeight = node.left ? (node.left.orderStats! as any)[stat] : 0;
+        const rightWeight = node.right ? (node.right.orderStats! as any)[stat] : 0;
+        const own = weight - leftWeight - rightWeight;
+        if (x < leftWeight) {
+            return nthStat(node.left, stat, x);
+        } else if (x === leftWeight + own - 1) {
+            return [node.key, node.value];
+        } else {
+            return nthStat(node.right, stat, x - leftWeight - own);
+        }
     }
 }
 
 export class AATree<K, V> {
+    public static defaultComparator<K>(a: K, b: K) {
+        if (a < b) {
+            return "lt";
+        } else if (a > b) {
+            return "gt";
+        } else {
+            return "eq";
+        }
+    }
+
     protected root: AANode<K, V> | null;
     protected comparator: Comparator<K>;
-    protected orderStatsMap: OrderStatsMap<K, V>;
+    protected orderStatsTemplate: OrderStats<K, V> | null;
 
-    constructor(comparator: Comparator<K> = defaultComparator,
-                orderStatsMap: OrderStatsMap<K, V> = () => ({}),
+    constructor(comparator: Comparator<K> = AATree.defaultComparator,
+                orderStatsTemplate: OrderStats<K, V> | null = null,
                 root: AANode<K, V> | null = null) {
         this.root = root;
-        this.orderStatsMap = orderStatsMap;
+        this.orderStatsTemplate = orderStatsTemplate;
         this.comparator = comparator;
+    }
+
+    public size(): number {
+        return size(this.root);
     }
 
     public insert(key: K, value: V): AATree<K, V> {
@@ -103,7 +139,7 @@ export class AATree<K, V> {
             }
         }
 
-        return new AATree(this.comparator, this.orderStatsMap, _insert(this.root));
+        return new AATree(this.comparator, this.orderStatsTemplate, _insert(this.root));
     }
 
     public remove(key: K): AATree<K, V> {
@@ -133,7 +169,7 @@ export class AATree<K, V> {
             }
         }
 
-        return new AATree(this.comparator, this.orderStatsMap, _remove(this.root));
+        return new AATree(this.comparator, this.orderStatsTemplate, _remove(this.root));
     }
 
     public find(key: K): V | undefined {
@@ -157,6 +193,15 @@ export class AATree<K, V> {
         return _find(this.root);
     }
 
+    // Zero-indexed nth
+    public nth(n: number): [K, V] | undefined {
+        return nth(this.root, n);
+    }
+
+    public nthStat(stat: string, x: number): [K, V] | undefined {
+        return nthStat(this.root, stat, x);
+    }
+
     public iter(): IterableIterator<[K, V]> {
         return iter(this.root);
     }
@@ -168,20 +213,6 @@ export class AATree<K, V> {
         }
     }
 
-    public orderStats() {
-        if (this.root) {
-            const orderStats: any = {};
-            for (const stat in this.orderStatsMap) {
-                if (this.orderStatsMap.hasOwnProperty(stat)) {
-                    orderStats[stat] = (this.root as any)[stat];
-                }
-            }
-            return orderStats;
-        } else {
-            return null;
-        }
-    }
-
     public _maintainsInvariant(): boolean {
         return maintainsInvariant(this.root);
     }
@@ -189,7 +220,13 @@ export class AATree<K, V> {
     private node<K, V>(key: K, value: V,
                        left: AANode<K, V> | null, right: AANode<K, V> | null,
                        level: number): AANode<K, V> {
-        return { key, value, left, right, level, size: 1 + size(left) + size(right), orderStats: null };
+        return {
+            key, value, left, right, level,
+            size: 1 + size(left) + size(right),
+            orderStats: this.orderStatsTemplate &&
+                this.orderStatsTemplate.of(key as any, value as any,
+                    left && left.orderStats as any, right && right.orderStats as any) as any,
+        };
     }
 
     private deleteLast<K, V>(node: AANode<K, V>): AANode<K, V> | null {
