@@ -1,4 +1,6 @@
-interface AANode<K, V> {
+import { OrderStats } from "./orderstats";
+
+export interface AANode<K, V> {
     key: K;
     value: V;
     left: AANode<K, V> | null;
@@ -8,7 +10,7 @@ interface AANode<K, V> {
     orderStats: OrderStats<K, V> | null;
 }
 
-type Comparator<K> = (a: K, b: K) => "lt" | "eq" | "gt";
+export type Comparator<K> = (a: K, b: K) => "lt" | "eq" | "gt";
 
 function level<K, V>(node: AANode<K, V> | null): number {
     return node ? node.level : 0;

@@ -2,8 +2,10 @@
   "name": "augmented-aa-tree",
   "version": "1.0.0",
   "description": "Immutable balanced binary search tree (AA tree) augmented with order statistics",
-  "main": "index.js",
+  "main": "_build/aatree.js",
+  "types": "_build/aatree.d.ts",
   "scripts": {
+    "build": "tsc -d",
     "bench": "tsc && node --expose-gc _build/benchmark/benchmark.js",
     "profile": "tsc && node --prof _build/benchmark/profile.js",
     "lint": "tslint -c tslint.json '{src,test}/**/*.ts' || true",
