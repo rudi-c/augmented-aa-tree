@@ -2,6 +2,7 @@ import test from "ava";
 import * as _ from "underscore";
 
 import { AATree } from "../src/aatree";
+import { OrderStats } from "../src/orderstats";
 
 function isPrime(n: number) {
     for (let i = 2, s = Math.sqrt(n); i <= s; i++) {
