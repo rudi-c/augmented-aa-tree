@@ -22,11 +22,13 @@ test("search for nth element is always correct", t => {
 
     numbers.forEach(n => {
         const [k, v] = tree.nth(n)!;
-        t.is(n, k);
-        t.is(n, v);
+        t.is(k, n);
+        t.is(v, n);
+        t.is(tree.findIndexOf(n), n);
     });
     t.is(tree.nth(1.5), undefined);
     t.is(tree.nth(99999999), undefined);
+    t.is(tree.findIndexOf(1.5), undefined);
 
     // Remove odd numbers
     const [evens, odds] = _.partition(numbers, x => x % 2 === 0);
@@ -34,8 +36,9 @@ test("search for nth element is always correct", t => {
 
     _.range(0, 5000).forEach(n => {
         const [k, v] = trimmedTree.nth(n)!;
-        t.is(n, k / 2);
-        t.is(n, v / 2);
+        t.is(k / 2, n);
+        t.is(v / 2, n);
+        t.is(trimmedTree.findIndexOf(n * 2), n);
     });
 });
 
@@ -52,18 +55,27 @@ class PrimeOrderStats implements OrderStats<number, number> {
 }
 
 test("order statistics on nth prime", t => {
-    const numbers = _.range(0, 5);
+    const numbers = _.range(0, 1000);
     const tree = _.shuffle<number>(numbers).reduce(
         (tree, n) => tree.insert(n, n),
         new AATree<number, number>(AATree.defaultComparator, new PrimeOrderStats(0)),
     );
 
     const primes = numbers.filter(isPrime);
-    console.log(tree);
     primes.forEach((prime, index) => {
-        console.log(index);
         const [k, v] = tree.nthStat("primeCount", index)!;
         t.is(k, prime);
         t.is(v, prime);
     });
+
+    let primeCount = 0
+    numbers.forEach(n => {
+        if (isPrime(n)) {
+            primeCount++;
+        }
+        t.is(tree.findStatOf(n, "primeCount"), primeCount);
+    })
+    t.is(tree.findStatOf(1.5, "primeCount"), undefined);
+
+    numbers
 });

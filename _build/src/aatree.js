@@ -6,6 +6,9 @@ function level(node) {
 function size(node) {
     return node ? node.size : 0;
 }
+function getStat(node, stat) {
+    return node ? node.orderStats[stat] : 0;
+}
 function isSingle(node) {
     if (node === null) {
         return true;
@@ -71,9 +74,9 @@ function nthStat(node, stat, x) {
         return undefined;
     }
     else {
-        const weight = node ? node.orderStats[stat] : 0;
-        const leftWeight = node.left ? node.left.orderStats[stat] : 0;
-        const rightWeight = node.right ? node.right.orderStats[stat] : 0;
+        const weight = getStat(node, stat);
+        const leftWeight = getStat(node.left, stat);
+        const rightWeight = getStat(node.right, stat);
         const own = weight - leftWeight - rightWeight;
         if (x < leftWeight) {
             return nthStat(node.left, stat, x);
@@ -178,6 +181,49 @@ class AATree {
         }
         return _find(this.root);
     }
+    findIndexOf(key) {
+        const self = this;
+        function _find(node, nodesOnTheLeftSide) {
+            if (node === null) {
+                return undefined;
+            }
+            else {
+                switch (self.comparator(key, node.key)) {
+                    case "eq":
+                        return nodesOnTheLeftSide + size(node.left);
+                    case "lt":
+                        return _find(node.left, nodesOnTheLeftSide);
+                    case "gt":
+                        return _find(node.right, nodesOnTheLeftSide + size(node.left) + 1);
+                    default:
+                        throw new Error("TODO");
+                }
+            }
+        }
+        return _find(this.root, 0);
+    }
+    findStatOf(key, stat) {
+        const self = this;
+        function _find(node, weightOnTheLeftSide) {
+            if (node === null) {
+                return undefined;
+            }
+            else {
+                const leftAndOwn = getStat(node, stat) - getStat(node.right, stat);
+                switch (self.comparator(key, node.key)) {
+                    case "eq":
+                        return weightOnTheLeftSide + leftAndOwn;
+                    case "lt":
+                        return _find(node.left, weightOnTheLeftSide);
+                    case "gt":
+                        return _find(node.right, weightOnTheLeftSide + leftAndOwn);
+                    default:
+                        throw new Error("TODO");
+                }
+            }
+        }
+        return _find(this.root, 0);
+    }
     // Zero-indexed nth
     nth(n) {
         return nth(this.root, n);
@@ -185,6 +231,7 @@ class AATree {
     nthStat(stat, x) {
         return nthStat(this.root, stat, x);
     }
+    // Use Array.from(tree.iter()) to get an array
     iter() {
         return iter(this.root);
     }

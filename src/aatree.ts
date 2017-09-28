@@ -1,6 +1,8 @@
 import { OrderStats } from "./orderstats";
 
-export interface AANode<K, V> {
+export type Comparator<K> = (a: K, b: K) => "lt" | "eq" | "gt";
+
+interface AANode<K, V> {
     key: K;
     value: V;
     left: AANode<K, V> | null;
@@ -10,14 +12,16 @@ export interface AANode<K, V> {
     orderStats: OrderStats<K, V> | null;
 }
 
-export type Comparator<K> = (a: K, b: K) => "lt" | "eq" | "gt";
-
 function level<K, V>(node: AANode<K, V> | null): number {
     return node ? node.level : 0;
 }
 
 function size<K, V>(node: AANode<K, V> | null): number {
     return node ? node.size : 0;
+}
+
+function getStat<K, V>(node: AANode<K, V> | null, stat: string): number {
+    return node ? (node.orderStats! as any)[stat] : 0;
 }
 
 function isSingle<K, V>(node: AANode<K, V> | null): boolean {
@@ -79,9 +83,9 @@ function nthStat<K, V>(node: AANode<K, V> | null, stat: string, x: number): [K, 
     if (node === null) {
         return undefined;
     } else {
-        const weight = node ? (node.orderStats! as any)[stat] : 0;
-        const leftWeight = node.left ? (node.left.orderStats! as any)[stat] : 0;
-        const rightWeight = node.right ? (node.right.orderStats! as any)[stat] : 0;
+        const weight = getStat(node, stat);
+        const leftWeight = getStat(node.left, stat);
+        const rightWeight = getStat(node.right, stat);
         const own = weight - leftWeight - rightWeight;
         if (x < leftWeight) {
             return nthStat(node.left, stat, x);
@@ -195,6 +199,49 @@ export class AATree<K, V> {
         return _find(this.root);
     }
 
+    public findIndexOf(key: K): number | undefined {
+        const self = this;
+        function _find(node: AANode<K, V> | null, nodesOnTheLeftSide: number): number | undefined {
+            if (node === null) {
+                return undefined;
+            } else {
+                switch (self.comparator(key, node.key)) {
+                    case "eq":
+                        return nodesOnTheLeftSide + size(node.left);
+                    case "lt":
+                        return _find(node.left, nodesOnTheLeftSide);
+                    case "gt":
+                        return _find(node.right, nodesOnTheLeftSide + size(node.left) + 1);
+                    default:
+                        throw new Error("TODO");
+                }
+            }
+        }
+        return _find(this.root, 0);
+    }
+
+    public findStatOf(key: K, stat: string): number | undefined {
+        const self = this;
+        function _find(node: AANode<K, V> | null, weightOnTheLeftSide: number): number | undefined {
+            if (node === null) {
+                return undefined;
+            } else {
+                const leftAndOwn = getStat(node, stat) - getStat(node.right, stat);
+                switch (self.comparator(key, node.key)) {
+                    case "eq":
+                        return weightOnTheLeftSide + leftAndOwn;
+                    case "lt":
+                        return _find(node.left, weightOnTheLeftSide);
+                    case "gt":
+                        return _find(node.right, weightOnTheLeftSide + leftAndOwn);
+                    default:
+                        throw new Error("TODO");
+                }
+            }
+        }
+        return _find(this.root, 0);
+    }
+
     // Zero-indexed nth
     public nth(n: number): [K, V] | undefined {
         return nth(this.root, n);
@@ -204,6 +251,7 @@ export class AATree<K, V> {
         return nthStat(this.root, stat, x);
     }
 
+    // Use Array.from(tree.iter()) to get an array
     public iter(): IterableIterator<[K, V]> {
         return iter(this.root);
     }
