@@ -2,8 +2,8 @@
   "name": "augmented-aa-tree",
   "version": "1.0.0",
   "description": "Immutable balanced binary search tree (AA tree) augmented with order statistics",
-  "main": "_build/src/index.js",
-  "types": "_build/src/aatree.d.ts",
+  "main": "_build/index.js",
+  "types": "_build/index.d.ts",
   "scripts": {
     "build": "tsc -d",
     "bench": "tsc && node --expose-gc _build/benchmark/benchmark.js",
