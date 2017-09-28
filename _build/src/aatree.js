@@ -90,7 +90,7 @@ function nthStat(node, stat, x) {
     }
 }
 class AATree {
-    constructor(comparator = AATree.defaultComparator, orderStatsTemplate = null, root = null) {
+    constructor(comparator = AATree.defaultComparator, orderStatsTemplate = null, root) {
         this.root = root;
         this.orderStatsTemplate = orderStatsTemplate;
         this.comparator = comparator;
@@ -105,6 +105,9 @@ class AATree {
         else {
             return "eq";
         }
+    }
+    static empty(comparator = AATree.defaultComparator, orderStatsTemplate = null) {
+        return new AATree(comparator, orderStatsTemplate, null);
     }
     size() {
         return size(this.root);

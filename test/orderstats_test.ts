@@ -17,7 +17,7 @@ test("search for nth element is always correct", t => {
     const numbers = _.range(0, 10000);
     const tree = _.shuffle<number>(numbers).reduce(
         (tree, n) => tree.insert(n, n),
-        new AATree<number, number>(),
+        AATree.empty<number, number>(),
     );
 
     numbers.forEach(n => {
@@ -58,7 +58,7 @@ test("order statistics on nth prime", t => {
     const numbers = _.range(0, 1000);
     const tree = _.shuffle<number>(numbers).reduce(
         (tree, n) => tree.insert(n, n),
-        new AATree<number, number>(AATree.defaultComparator, new PrimeOrderStats(0)),
+        AATree.empty<number, number>(AATree.defaultComparator, new PrimeOrderStats(0)),
     );
 
     const primes = numbers.filter(isPrime);

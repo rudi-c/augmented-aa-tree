@@ -108,16 +108,21 @@ export class AATree<K, V> {
         }
     }
 
-    protected root: AANode<K, V> | null;
-    protected comparator: Comparator<K>;
-    protected orderStatsTemplate: OrderStats<K, V> | null;
+    private root: AANode<K, V> | null;
+    private comparator: Comparator<K>;
+    private orderStatsTemplate: OrderStats<K, V> | null;
 
-    constructor(comparator: Comparator<K> = AATree.defaultComparator,
-                orderStatsTemplate: OrderStats<K, V> | null = null,
-                root: AANode<K, V> | null = null) {
+    private constructor(comparator: Comparator<K> = AATree.defaultComparator,
+                        orderStatsTemplate: OrderStats<K, V> | null = null,
+                        root: AANode<K, V> | null) {
         this.root = root;
         this.orderStatsTemplate = orderStatsTemplate;
         this.comparator = comparator;
+    }
+
+    public static empty<K, V>(comparator: Comparator<K> = AATree.defaultComparator,
+                              orderStatsTemplate: OrderStats<K, V> | null = null) {
+        return new AATree<K, V>(comparator, orderStatsTemplate, null)
     }
 
     public size(): number {

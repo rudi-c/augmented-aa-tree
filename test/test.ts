@@ -4,14 +4,14 @@ import * as _ from "underscore";
 import { AATree } from "../src/aatree";
 
 test("empty tree produces empty iterator", t => {
-    const tree = new AATree();
+    const tree = AATree.empty();
     t.deepEqual(Array.from(tree.keys()), []);
 
     t.is(tree.find(0), undefined);
 });
 
 function numbersToTree(numbers: number[]): AATree<number, number> {
-    return numbers.reduce((tree, n) => tree.insert(n, n), new AATree<number, number>());
+    return numbers.reduce((tree, n) => tree.insert(n, n), AATree.empty<number, number>());
 }
 
 function keyMatchesValues(t: any, numbers: number[], tree: AATree<number, number>): void {

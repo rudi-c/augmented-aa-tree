@@ -57,7 +57,7 @@ measure.keepAlive = null;
  */
 
 export function numbersToAATree(numbers: number[]): AATree<number, number> {
-    return numbers.reduce((tree, n) => tree.insert(n, n), new AATree<number, number>());
+    return numbers.reduce((tree, n) => tree.insert(n, n), AATree.empty<number, number>());
 }
 
 export function numbersToIMap(numbers: number[]): Immutable.Map<number, number> {
